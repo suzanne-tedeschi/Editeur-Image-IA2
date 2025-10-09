@@ -1,0 +1,74 @@
+
+> ai-image-editor@0.1.0 dev
+> next dev
+
+  ▲ Next.js 13.5.11
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Ready in 1504ms
+ ⚠ ./node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/auth-js/dist/main/lib/helpers.js
+./node_modules/@supabase/auth-js/dist/main/GoTrueAdminApi.js
+./node_modules/@supabase/auth-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./lib/supabaseServer.ts
+./app/api/generate/route.ts
+
+./node_modules/@supabase/functions-js/dist/main/helper.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/functions-js/dist/main/helper.js
+./node_modules/@supabase/functions-js/dist/main/FunctionsClient.js
+./node_modules/@supabase/functions-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./lib/supabaseServer.ts
+./app/api/generate/route.ts
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./lib/supabaseServer.ts
+./app/api/generate/route.ts
+
+./node_modules/@supabase/storage-js/dist/main/lib/helpers.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/storage-js/dist/main/lib/helpers.js
+./node_modules/@supabase/storage-js/dist/main/packages/StorageFileApi.js
+./node_modules/@supabase/storage-js/dist/main/StorageClient.js
+./node_modules/@supabase/storage-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/SupabaseClient.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./lib/supabaseServer.ts
+./app/api/generate/route.ts
+
+./node_modules/@supabase/storage-js/dist/main/lib/helpers.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/storage-js/dist/main/lib/helpers.js
+./node_modules/@supabase/storage-js/dist/main/packages/StorageFileApi.js
+./node_modules/@supabase/storage-js/dist/main/StorageClient.js
+./node_modules/@supabase/storage-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/SupabaseClient.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./lib/supabaseServer.ts
+./app/api/generate/route.ts
+🎭 MODE SIMULATION: simulation de génération d'image
+📝 Prompt: ajouter des lunettes de soleil stylées
+🖼️ Image URL: https://lytalbwasjtohwzpenxz.supabase.co/storage/v1/object/public/input-images/input-32c0435e-c0ff-4cf1-baea-d53e3f2171f4.png
+ ○ Compiling /api/generate/route ...
+🎭 MODE SIMULATION: simulation de génération d'image
+📝 Prompt: ajouter des lunettes de soleil stylées
+🖼️ Image URL: https://lytalbwasjtohwzpenxz.supabase.co/storage/v1/object/public/input-images/input-2d2cfc44-bd92-4982-a4ff-1113c034431e.png
+ ⚠ Found a change in next.config.mjs. Restarting the server to apply the changes...
