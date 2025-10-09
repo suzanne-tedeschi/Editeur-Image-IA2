@@ -38,21 +38,32 @@ export default function AuthForm({ initialMode = 'signin' }: { initialMode?: Mod
 
     try {
       if (mode === 'signup') {
+        console.log('🔵 Tentative d\'inscription:', email)
         const { error } = await signUp(email, password)
         if (error) {
+          console.error('❌ Erreur inscription:', error)
           setError(error.message)
         } else {
+          console.log('✅ Inscription réussie')
           setMessage('Inscription réussie ! Vérifiez votre email pour confirmer votre compte.')
         }
       } else {
+        console.log('🔵 Tentative de connexion:', email)
         const { error } = await signIn(email, password)
+        console.log('🔍 Résultat connexion:', { error })
         if (error) {
+          console.error('❌ Erreur connexion:', error)
           setError(error.message)
         } else {
-          router.push('/dashboard')
+          console.log('✅ Connexion réussie, redirection vers /dashboard')
+          // Attendre un peu pour que la session soit bien établie
+          setTimeout(() => {
+            window.location.href = '/dashboard'
+          }, 100)
         }
       }
     } catch (err: any) {
+      console.error('❌ Exception:', err)
       setError(err.message || 'Une erreur est survenue')
     } finally {
       setLoading(false)

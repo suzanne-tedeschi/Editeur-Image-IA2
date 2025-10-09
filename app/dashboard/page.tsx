@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
 import Image from 'next/image'
@@ -17,6 +18,7 @@ interface Project {
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
@@ -25,6 +27,13 @@ export default function DashboardPage() {
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // Rediriger si non authentifié
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, authLoading, router])
 
   // Charger les projets de l'utilisateur
   useEffect(() => {
@@ -77,12 +86,21 @@ export default function DashboardPage() {
     setSuccess('')
 
     try {
+      // Obtenir le token de session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('Session expirée, veuillez vous reconnecter')
+      }
+
       const formData = new FormData()
       formData.append('file', file)
       formData.append('prompt', prompt)
 
       const response = await fetch('/api/generate', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: formData,
       })
 
@@ -110,9 +128,18 @@ export default function DashboardPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')) return
 
     try {
+      // Obtenir le token de session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('Session expirée, veuillez vous reconnecter')
+      }
+
       const response = await fetch('/api/delete', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ projectId }),
       })
 
@@ -265,7 +292,10 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-700 mb-2">{project.prompt}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-500">
-                        {new Date(project.created_at).toLocaleDateString()}
+                        {new Date(project.created_at).toLocaleString('fr-FR', {
+                          dateStyle: 'short',
+                          timeStyle: 'short'
+                        })}
                       </span>
                       <button
                         onClick={() => handleDelete(project.id)}

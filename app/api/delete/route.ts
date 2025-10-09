@@ -1,24 +1,27 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, SUPABASE_INPUT_BUCKET, SUPABASE_OUTPUT_BUCKET } from '../../../lib/supabaseServer'
-import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 
 export async function DELETE(req: Request) {
   try {
     console.log('🗑️ Début de la suppression...')
     
-    // Vérifier l'authentification
-    const cookieStore = cookies()
+    // Vérifier l'authentification via le header Authorization
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+      console.error('❌ Aucun token fourni')
+      return NextResponse.json({ error: 'Non authentifié - token manquant' }, { status: 401 })
+    }
+    
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false
-      },
       global: {
         headers: {
-          cookie: cookieStore.toString()
+          Authorization: `Bearer ${token}`
         }
       }
     })
