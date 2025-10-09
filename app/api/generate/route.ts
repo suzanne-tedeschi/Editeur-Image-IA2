@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin, SUPABASE_INPUT_BUCKET, SUPABASE_OUTPUT_BUCKET } from '../../../lib/supabaseServer'
 import { v4 as uuidv4 } from 'uuid'
 import Replicate from 'replicate'
+import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 async function uploadBufferToBucket(bucket: string, path: string, buffer: Buffer, contentType?: string) {
   const { data, error } = await supabaseAdmin.storage.from(bucket).upload(path, buffer, {
@@ -140,8 +142,33 @@ export async function POST(req: Request) {
   try {
     console.log('🚀 Début de la génération d\'image...')
     
+    // Vérifier l'authentification
+    const cookieStore = cookies()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false
+      },
+      global: {
+        headers: {
+          cookie: cookieStore.toString()
+        }
+      }
+    })
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      console.error('❌ Non authentifié:', authError)
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+    
+    console.log('✅ Utilisateur authentifié:', user.email)
+    
     const form = await req.formData()
-    const file = form.get('image') as File | null
+    const file = form.get('file') as File | null
     const prompt = String(form.get('prompt') || '')
     
     if (!file) {
@@ -231,9 +258,10 @@ export async function POST(req: Request) {
 
     console.log('💾 Sauvegarde du projet...')
 
-    // Sauvegarde dans la base de données
+    // Sauvegarde dans la base de données avec user_id
     const { error: insertError } = await supabaseAdmin.from('projects').insert({
       id: uuidv4(),
+      user_id: user.id,
       input_image_url: inputPublicUrl,
       output_image_url: outputPublicUrl,
       prompt,
