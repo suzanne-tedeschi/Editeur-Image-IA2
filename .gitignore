@@ -51,5 +51,6 @@ next-env.d.ts
 *_backup.tsx
 *_old.tsx
 *_complex.tsx
+*.corrupted.tsx
 *.old.ts
 *.backup.ts
