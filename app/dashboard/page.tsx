@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
 import Image from 'next/image'
 import Link from 'next/link'
+import SubscriptionStatus from '@/components/SubscriptionStatus'
 
 interface Project {
   id: string
@@ -82,7 +83,7 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      const response = await fetch('/api/stripe/portal', {
+      const response = await fetch('/api/create-portal-session', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -260,59 +261,38 @@ export default function DashboardPage() {
 
         {/* Carte d'abonnement */}
         {!loadingSubscription && (
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-rose-100">
+          <>
             {subscription ? (
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Plan {subscription.plan_type.toUpperCase()}
-                  </h3>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-4">
-                      <span className="text-gray-600">Quota:</span>
-                      <div className="flex-1 max-w-xs">
-                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all"
-                            style={{ width: `${(subscription.quota_used / subscription.quota_total) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-700">
-                        {subscription.quota_used} / {subscription.quota_total}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Renouvellement: {new Date(subscription.current_period_end).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleManageSubscription}
-                  className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  Gérer mon abonnement
-                </button>
+              <div className="mb-8">
+                <SubscriptionStatus
+                  planType={subscription.plan_type}
+                  quotaUsed={subscription.quota_used}
+                  quotaTotal={subscription.quota_total}
+                  currentPeriodEnd={subscription.current_period_end}
+                  onManageSubscription={handleManageSubscription}
+                />
               </div>
             ) : (
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    Aucun abonnement actif
-                  </h3>
-                  <p className="text-gray-600">
-                    Abonnez-vous pour commencer à générer des images avec l'IA
-                  </p>
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-rose-100">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      Aucun abonnement actif
+                    </h3>
+                    <p className="text-gray-600">
+                      Abonnez-vous pour commencer à générer des images avec l'IA
+                    </p>
+                  </div>
+                  <Link
+                    href="/pricing"
+                    className="px-6 py-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all"
+                  >
+                    Voir les plans
+                  </Link>
                 </div>
-                <Link
-                  href="/pricing"
-                  className="px-6 py-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all"
-                >
-                  Voir les plans
-                </Link>
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Formulaire de génération */}
@@ -368,12 +348,23 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {subscription && subscription.quota_used >= subscription.quota_total && (
+              <div className="bg-orange-50 border border-orange-200 text-orange-800 p-3 rounded-lg text-sm">
+                ⚠️ Quota atteint ({subscription.quota_used}/{subscription.quota_total}). 
+                {subscription.plan_type === 'basic' ? (
+                  <> <Link href="/pricing" className="font-semibold underline">Passez au plan Pro</Link> pour continuer.</>
+                ) : (
+                  <> Votre quota se renouvellera le {new Date(subscription.current_period_end).toLocaleDateString('fr-FR')}.</>
+                )}
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              disabled={loading || (subscription ? subscription.quota_used >= subscription.quota_total : false)}
+              className="bg-rose-600 text-white px-6 py-2 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Génération en cours...' : 'Générer'}
+              {loading ? 'Génération en cours...' : (subscription && subscription.quota_used >= subscription.quota_total) ? 'Quota atteint' : 'Générer'}
             </button>
           </form>
         </div>

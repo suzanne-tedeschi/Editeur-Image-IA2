@@ -1,21 +1,24 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import SubscriptionPlans from '@/components/SubscriptionPlans'
+import { useSearchParams } from 'next/navigation'
+import PricingCard from '@/components/PricingCard'
 import Link from 'next/link'
+import { STRIPE_PLANS } from '@/lib/stripe'
 
 export default function PricingPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const canceled = searchParams.get('canceled')
   const success = searchParams.get('success')
 
   useEffect(() => {
-    if (canceled) {
-      // Optionnel : afficher un message d'annulation
+    if (success) {
+      // Rediriger vers le dashboard après un court délai
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 2000)
     }
-  }, [canceled])
+  }, [success])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50">
@@ -44,8 +47,31 @@ export default function PricingPage() {
           </div>
         )}
 
+        {success && (
+          <div className="max-w-2xl mx-auto mb-8 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 text-center">
+            ✅ Paiement réussi ! Redirection vers le dashboard...
+          </div>
+        )}
+
         {/* Plans d'abonnement */}
-        <SubscriptionPlans />
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <PricingCard
+            name="Basic"
+            price={STRIPE_PLANS.basic.price}
+            quota={STRIPE_PLANS.basic.quota}
+            features={STRIPE_PLANS.basic.features}
+            priceId={STRIPE_PLANS.basic.priceId}
+          />
+          
+          <PricingCard
+            name="Pro"
+            price={STRIPE_PLANS.pro.price}
+            quota={STRIPE_PLANS.pro.quota}
+            features={STRIPE_PLANS.pro.features}
+            priceId={STRIPE_PLANS.pro.priceId}
+            isPopular={true}
+          />
+        </div>
 
         {/* FAQ ou informations supplémentaires */}
         <div className="mt-16 text-center">
