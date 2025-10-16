@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as any
         console.log('💳 Checkout complété pour:', session.customer)
+        console.log('📋 Session metadata:', JSON.stringify(session.metadata))
 
         if (!session.subscription) {
           console.log('⚠️ Pas de subscription dans le checkout')
@@ -51,11 +52,15 @@ export async function POST(req: NextRequest) {
           ? session.subscription
           : session.subscription.id
 
+        console.log('🔍 Récupération subscription:', subscriptionId)
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         const userId = session.metadata?.user_id
 
+        console.log('👤 User ID récupéré:', userId)
+
         if (!userId) {
           console.error('❌ user_id manquant dans metadata')
+          console.error('❌ Session complète:', JSON.stringify(session, null, 2))
           break
         }
 
@@ -73,13 +78,18 @@ export async function POST(req: NextRequest) {
         const currentPeriodStart = (subscription as any).current_period_start
         const currentPeriodEnd = (subscription as any).current_period_end
 
+        console.log('📅 Timestamps:', { currentPeriodStart, currentPeriodEnd })
+
         if (!currentPeriodStart || !currentPeriodEnd) {
           console.error('❌ Timestamps invalides dans subscription:', subscription.id)
+          console.error('❌ Subscription complète:', JSON.stringify(subscription, null, 2))
           break
         }
 
+        console.log('💾 Tentative d\'insertion dans Supabase...')
+        
         // Créer ou mettre à jour l'abonnement (adapté au schéma de votre table)
-        const { error } = await supabase.from('subscriptions').upsert({
+        const { data, error } = await supabase.from('subscriptions').upsert({
           user_id: userId,
           stripe_customer_id: subscription.customer as string,
           stripe_subscription_id: subscription.id,
@@ -93,8 +103,10 @@ export async function POST(req: NextRequest) {
 
         if (error) {
           console.error('❌ Erreur Supabase:', error)
+          console.error('❌ Détails erreur:', JSON.stringify(error, null, 2))
         } else {
           console.log('✅ Subscription créée/mise à jour')
+          console.log('✅ Data:', JSON.stringify(data, null, 2))
         }
         break
       }
