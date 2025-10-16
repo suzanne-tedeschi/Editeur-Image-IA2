@@ -69,6 +69,15 @@ export async function POST(req: NextRequest) {
           quotaTotal = STRIPE_PLANS.pro.quota
         }
 
+        // Vérifier que les timestamps sont valides
+        const currentPeriodStart = (subscription as any).current_period_start
+        const currentPeriodEnd = (subscription as any).current_period_end
+
+        if (!currentPeriodStart || !currentPeriodEnd) {
+          console.error('❌ Timestamps invalides dans subscription:', subscription.id)
+          break
+        }
+
         // Créer ou mettre à jour l'abonnement
         const { error } = await supabase.from('subscriptions').upsert({
           user_id: userId,
@@ -76,8 +85,8 @@ export async function POST(req: NextRequest) {
           stripe_subscription_id: subscription.id,
           plan_type: planType,
           status: subscription.status,
-          current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-          current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
+          current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
           quota_total: quotaTotal,
           quota_used: 0,
         })
@@ -94,15 +103,17 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as any
         console.log('🆕 Nouvelle subscription:', subscription.id)
 
-        // Récupérer l'user_id via le customer
+        // Récupérer l'user_id via le customer depuis une subscription existante
         const { data: existingSub } = await supabase
           .from('subscriptions')
           .select('user_id')
           .eq('stripe_customer_id', subscription.customer)
           .single()
 
+        // Si pas de user_id trouvé, on log et on attend checkout.session.completed
         if (!existingSub?.user_id) {
-          console.error('❌ user_id non trouvé pour customer:', subscription.customer)
+          console.log('ℹ️ user_id non encore disponible pour customer:', subscription.customer)
+          console.log('ℹ️ checkout.session.completed va créer la subscription avec le user_id')
           break
         }
 
@@ -115,19 +126,28 @@ export async function POST(req: NextRequest) {
           quotaTotal = STRIPE_PLANS.pro.quota
         }
 
+        // Vérifier que les timestamps sont valides
+        const currentPeriodStart = subscription.current_period_start
+        const currentPeriodEnd = subscription.current_period_end
+
+        if (!currentPeriodStart || !currentPeriodEnd) {
+          console.error('❌ Timestamps invalides dans subscription')
+          break
+        }
+
         await supabase.from('subscriptions').upsert({
           user_id: existingSub.user_id,
           stripe_customer_id: subscription.customer as string,
           stripe_subscription_id: subscription.id,
           plan_type: planType,
           status: subscription.status,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
+          current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
           quota_total: quotaTotal,
           quota_used: 0,
         })
 
-        console.log('✅ Subscription créée')
+        console.log('✅ Subscription mise à jour depuis customer.subscription.created')
         break
       }
 
@@ -144,13 +164,22 @@ export async function POST(req: NextRequest) {
           quotaTotal = STRIPE_PLANS.pro.quota
         }
 
+        // Vérifier que les timestamps sont valides
+        const currentPeriodStart = subscription.current_period_start
+        const currentPeriodEnd = subscription.current_period_end
+
+        if (!currentPeriodStart || !currentPeriodEnd) {
+          console.error('❌ Timestamps invalides dans subscription:', subscription.id)
+          break
+        }
+
         await supabase
           .from('subscriptions')
           .update({
             plan_type: planType,
             status: subscription.status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
+            current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
             quota_total: quotaTotal,
           })
           .eq('stripe_subscription_id', subscription.id)
