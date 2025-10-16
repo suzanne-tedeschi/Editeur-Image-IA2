@@ -74,11 +74,12 @@ export async function POST(req: NextRequest) {
           quotaTotal = STRIPE_PLANS.pro.quota
         }
 
-        // Vérifier que les timestamps sont valides
-        const currentPeriodStart = (subscription as any).current_period_start
-        const currentPeriodEnd = (subscription as any).current_period_end
+        // Récupérer les timestamps depuis items.data[0] (Stripe 2025 API)
+        const subscriptionItem = subscription.items.data[0]
+        const currentPeriodStart = subscriptionItem?.current_period_start
+        const currentPeriodEnd = subscriptionItem?.current_period_end
 
-        console.log('📅 Timestamps:', { currentPeriodStart, currentPeriodEnd })
+        console.log('📅 Timestamps récupérés:', { currentPeriodStart, currentPeriodEnd })
 
         if (!currentPeriodStart || !currentPeriodEnd) {
           console.error('❌ Timestamps invalides dans subscription:', subscription.id)
@@ -138,9 +139,10 @@ export async function POST(req: NextRequest) {
           quotaTotal = STRIPE_PLANS.pro.quota
         }
 
-        // Vérifier que les timestamps sont valides
-        const currentPeriodStart = subscription.current_period_start
-        const currentPeriodEnd = subscription.current_period_end
+        // Récupérer les timestamps depuis items.data[0] (Stripe 2025 API)
+        const subscriptionItem = subscription.items.data[0]
+        const currentPeriodStart = subscriptionItem?.current_period_start
+        const currentPeriodEnd = subscriptionItem?.current_period_end
 
         if (!currentPeriodStart || !currentPeriodEnd) {
           console.error('❌ Timestamps invalides dans subscription')
@@ -176,11 +178,12 @@ export async function POST(req: NextRequest) {
           quotaTotal = STRIPE_PLANS.pro.quota
         }
 
-        // Vérifier que les timestamps sont valides
-        const currentPeriodStart = subscription.current_period_start
-        const currentPeriodEnd = subscription.current_period_end
+        // Récupérer les timestamps depuis items.data[0] (Stripe 2025 API)
+        const subscriptionItem2 = subscription.items.data[0]
+        const currentPeriodStart2 = subscriptionItem2?.current_period_start
+        const currentPeriodEnd2 = subscriptionItem2?.current_period_end
 
-        if (!currentPeriodStart || !currentPeriodEnd) {
+        if (!currentPeriodStart2 || !currentPeriodEnd2) {
           console.error('❌ Timestamps invalides dans subscription:', subscription.id)
           break
         }
@@ -190,8 +193,8 @@ export async function POST(req: NextRequest) {
           .update({
             stripe_price_id: priceId, // Utiliser stripe_price_id
             status: subscription.status,
-            current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
-            current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
+            current_period_start: new Date(currentPeriodStart2 * 1000).toISOString(),
+            current_period_end: new Date(currentPeriodEnd2 * 1000).toISOString(),
             quota_limit: quotaTotal, // Utiliser quota_limit
           })
           .eq('stripe_subscription_id', subscription.id)
