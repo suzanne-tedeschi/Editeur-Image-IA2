@@ -169,6 +169,36 @@ export async function POST(req: Request) {
     }
     
     console.log('✅ Utilisateur authentifié:', user.email)
+
+    // Vérifier le quota de l'utilisateur
+    const { data: subscription, error: subError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single()
+
+    if (subError && subError.code !== 'PGRST116') { // PGRST116 = pas de résultat trouvé
+      console.error('❌ Erreur lors de la vérification de l\'abonnement:', subError)
+      return NextResponse.json({ error: 'Erreur lors de la vérification de l\'abonnement' }, { status: 500 })
+    }
+
+    if (!subscription) {
+      return NextResponse.json({ 
+        error: 'Aucun abonnement actif. Veuillez vous abonner pour générer des images.',
+        needsSubscription: true 
+      }, { status: 403 })
+    }
+
+    // Vérifier que l'utilisateur n'a pas dépassé son quota
+    if (subscription.quota_used >= subscription.quota_total) {
+      return NextResponse.json({ 
+        error: `Quota épuisé (${subscription.quota_used}/${subscription.quota_total}). Passez à un plan supérieur ou attendez le prochain cycle.`,
+        quotaExceeded: true 
+      }, { status: 403 })
+    }
+
+    console.log(`📊 Quota: ${subscription.quota_used}/${subscription.quota_total}`)
     
     const form = await req.formData()
     const file = form.get('file') as File | null
@@ -196,6 +226,14 @@ export async function POST(req: Request) {
 
     // Génération avec Replicate
     const output = await generateImageWithReplicate(inputPublicUrl, prompt)
+
+    // Incrémenter le quota utilisé
+    await supabase
+      .from('subscriptions')
+      .update({ quota_used: subscription.quota_used + 1 })
+      .eq('user_id', user.id)
+
+    console.log(`✅ Quota mis à jour: ${subscription.quota_used + 1}/${subscription.quota_total}`)
 
     // Debug: voir le format exact de la sortie
     console.log('🔍 Type de sortie:', typeof output)

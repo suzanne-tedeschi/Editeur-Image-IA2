@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabaseClient'
 import Image from 'next/image'
+import Link from 'next/link'
 
 interface Project {
   id: string
@@ -14,6 +15,14 @@ interface Project {
   prompt: string
   status: string
   created_at: string
+}
+
+interface Subscription {
+  plan_type: string
+  status: string
+  quota_total: number
+  quota_used: number
+  current_period_end: string
 }
 
 export default function DashboardPage() {
@@ -27,6 +36,8 @@ export default function DashboardPage() {
   const [loadingProjects, setLoadingProjects] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [loadingSubscription, setLoadingSubscription] = useState(true)
 
   // Rediriger si non authentifié
   useEffect(() => {
@@ -35,12 +46,58 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
-  // Charger les projets de l'utilisateur
+  // Charger les projets et l'abonnement de l'utilisateur
   useEffect(() => {
     if (user) {
       loadProjects()
+      loadSubscription()
     }
   }, [user])
+
+  const loadSubscription = async () => {
+    if (!user) return
+
+    setLoadingSubscription(true)
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single()
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = pas de résultat
+        console.error('Error loading subscription:', error)
+      }
+      setSubscription(data)
+    } catch (err: any) {
+      console.error('Error loading subscription:', err)
+    } finally {
+      setLoadingSubscription(false)
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors de l\'accès au portail client')
+    }
+  }
 
   const loadProjects = async () => {
     if (!user) return
@@ -107,6 +164,14 @@ export default function DashboardPage() {
       const data = await response.json()
 
       if (!response.ok) {
+        // Vérifier si l'utilisateur doit s'abonner
+        if (data.needsSubscription || data.quotaExceeded) {
+          setError(data.error)
+          setTimeout(() => {
+            router.push('/pricing')
+          }, 2000)
+          return
+        }
         throw new Error(data.error || 'Erreur lors de la génération')
       }
 
@@ -115,8 +180,9 @@ export default function DashboardPage() {
       setPreview(null)
       setPrompt('')
       
-      // Recharger les projets
+      // Recharger les projets et l'abonnement
       await loadProjects()
+      await loadSubscription()
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue')
     } finally {
@@ -176,13 +242,82 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold mb-8">Mon Dashboard</h1>
+        {/* Header avec abonnement */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Mon Dashboard</h1>
+            <p className="text-gray-600 mt-1">Bienvenue, {user.email}</p>
+          </div>
+          <Link
+            href="/"
+            className="text-rose-600 hover:text-rose-700 font-medium"
+          >
+            ← Retour à l'accueil
+          </Link>
+        </div>
+
+        {/* Carte d'abonnement */}
+        {!loadingSubscription && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-2 border-rose-100">
+            {subscription ? (
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Plan {subscription.plan_type.toUpperCase()}
+                  </h3>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-600">Quota:</span>
+                      <div className="flex-1 max-w-xs">
+                        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all"
+                            style={{ width: `${(subscription.quota_used / subscription.quota_total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700">
+                        {subscription.quota_used} / {subscription.quota_total}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      Renouvellement: {new Date(subscription.current_period_end).toLocaleDateString('fr-FR')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleManageSubscription}
+                  className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Gérer mon abonnement
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    Aucun abonnement actif
+                  </h3>
+                  <p className="text-gray-600">
+                    Abonnez-vous pour commencer à générer des images avec l'IA
+                  </p>
+                </div>
+                <Link
+                  href="/pricing"
+                  className="px-6 py-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all"
+                >
+                  Voir les plans
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Formulaire de génération */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Générer une nouvelle image</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-rose-100">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">Générer une nouvelle image</h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
