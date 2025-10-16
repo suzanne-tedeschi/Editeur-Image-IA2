@@ -1,6 +1,65 @@
+'use client'
+
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Home() {
+  const { user, loading } = useAuth()
+
+  // Si connecté, afficher un message de bienvenue avec accès direct au dashboard
+  if (!loading && user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+              Bienvenue, {user.email?.split('@')[0]} ! 👋
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Vous êtes connecté(e) et prêt(e) à créer des images extraordinaires avec l&apos;IA
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link
+                href="/dashboard"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-medium transition-colors"
+              >
+                Aller au Dashboard 🎨
+              </Link>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="mt-20 grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <div className="text-4xl mb-4">🖼️</div>
+              <h3 className="text-xl font-semibold mb-2">Vos projets</h3>
+              <p className="text-gray-600">
+                Accédez à tous vos projets d&apos;images générées
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <div className="text-4xl mb-4">✨</div>
+              <h3 className="text-xl font-semibold mb-2">Créer maintenant</h3>
+              <p className="text-gray-600">
+                Uploadez une image et transformez-la avec l&apos;IA
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <div className="text-4xl mb-4">💾</div>
+              <h3 className="text-xl font-semibold mb-2">Historique</h3>
+              <p className="text-gray-600">
+                Retrouvez toutes vos créations précédentes
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Si non connecté, afficher la page d'accueil classique
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Hero Section */}
