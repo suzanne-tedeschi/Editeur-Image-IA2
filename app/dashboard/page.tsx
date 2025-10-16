@@ -19,9 +19,9 @@ interface Project {
 }
 
 interface Subscription {
-  plan_type: string
+  stripe_price_id: string  // Changé de plan_type à stripe_price_id
   status: string
-  quota_total: number
+  quota_limit: number      // Changé de quota_total à quota_limit
   quota_used: number
   current_period_end: string
 }
@@ -39,6 +39,17 @@ export default function DashboardPage() {
   const [success, setSuccess] = useState('')
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loadingSubscription, setLoadingSubscription] = useState(true)
+
+  // Helper pour déterminer le type de plan depuis le price_id
+  const getPlanType = (priceId: string): 'basic' | 'pro' => {
+    const BASIC_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC
+    const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO
+    
+    if (priceId === PRO_PRICE_ID) {
+      return 'pro'
+    }
+    return 'basic'
+  }
 
   // Rediriger si non authentifié
   useEffect(() => {
@@ -265,9 +276,9 @@ export default function DashboardPage() {
             {subscription ? (
               <div className="mb-8">
                 <SubscriptionStatus
-                  planType={subscription.plan_type}
+                  planType={getPlanType(subscription.stripe_price_id)}
                   quotaUsed={subscription.quota_used}
-                  quotaTotal={subscription.quota_total}
+                  quotaTotal={subscription.quota_limit}
                   currentPeriodEnd={subscription.current_period_end}
                   onManageSubscription={handleManageSubscription}
                 />
@@ -348,10 +359,10 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {subscription && subscription.quota_used >= subscription.quota_total && (
+            {subscription && subscription.quota_used >= subscription.quota_limit && (
               <div className="bg-orange-50 border border-orange-200 text-orange-800 p-3 rounded-lg text-sm">
-                ⚠️ Quota atteint ({subscription.quota_used}/{subscription.quota_total}). 
-                {subscription.plan_type === 'basic' ? (
+                ⚠️ Quota atteint ({subscription.quota_used}/{subscription.quota_limit}). 
+                {getPlanType(subscription.stripe_price_id) === 'basic' ? (
                   <> <Link href="/pricing" className="font-semibold underline">Passez au plan Pro</Link> pour continuer.</>
                 ) : (
                   <> Votre quota se renouvellera le {new Date(subscription.current_period_end).toLocaleDateString('fr-FR')}.</>
@@ -361,10 +372,10 @@ export default function DashboardPage() {
 
             <button
               type="submit"
-              disabled={loading || (subscription ? subscription.quota_used >= subscription.quota_total : false)}
+              disabled={loading || (subscription ? subscription.quota_used >= subscription.quota_limit : false)}
               className="bg-rose-600 text-white px-6 py-2 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Génération en cours...' : (subscription && subscription.quota_used >= subscription.quota_total) ? 'Quota atteint' : 'Générer'}
+              {loading ? 'Génération en cours...' : (subscription && subscription.quota_used >= subscription.quota_limit) ? 'Quota atteint' : 'Générer'}
             </button>
           </form>
         </div>

@@ -78,16 +78,16 @@ export async function POST(req: NextRequest) {
           break
         }
 
-        // Créer ou mettre à jour l'abonnement
+        // Créer ou mettre à jour l'abonnement (adapté au schéma de votre table)
         const { error } = await supabase.from('subscriptions').upsert({
           user_id: userId,
           stripe_customer_id: subscription.customer as string,
           stripe_subscription_id: subscription.id,
-          plan_type: planType,
+          stripe_price_id: priceId, // Utiliser stripe_price_id au lieu de plan_type
           status: subscription.status,
           current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
           current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
-          quota_total: quotaTotal,
+          quota_limit: quotaTotal, // Utiliser quota_limit au lieu de quota_total
           quota_used: 0,
         })
 
@@ -139,11 +139,11 @@ export async function POST(req: NextRequest) {
           user_id: existingSub.user_id,
           stripe_customer_id: subscription.customer as string,
           stripe_subscription_id: subscription.id,
-          plan_type: planType,
+          stripe_price_id: priceId, // Utiliser stripe_price_id
           status: subscription.status,
           current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
           current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
-          quota_total: quotaTotal,
+          quota_limit: quotaTotal, // Utiliser quota_limit
           quota_used: 0,
         })
 
@@ -176,11 +176,11 @@ export async function POST(req: NextRequest) {
         await supabase
           .from('subscriptions')
           .update({
-            plan_type: planType,
+            stripe_price_id: priceId, // Utiliser stripe_price_id
             status: subscription.status,
             current_period_start: new Date(currentPeriodStart * 1000).toISOString(),
             current_period_end: new Date(currentPeriodEnd * 1000).toISOString(),
-            quota_total: quotaTotal,
+            quota_limit: quotaTotal, // Utiliser quota_limit
           })
           .eq('stripe_subscription_id', subscription.id)
 
