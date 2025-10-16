@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 
 interface PricingCardProps {
   name: string
@@ -24,15 +25,31 @@ export default function PricingCard({
   const handleSubscribe = async () => {
     setLoading(true)
     try {
+      // Récupérer le token de session
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      console.log('Session:', session)
+      
+      if (!session) {
+        alert('Vous devez être connecté pour vous abonner')
+        window.location.href = '/login'
+        return
+      }
+
+      console.log('Sending request with token:', session.access_token.substring(0, 20) + '...')
+
       const response = await fetch('/api/create-subscription-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ priceId }),
       })
 
+      console.log('Response status:', response.status)
       const data = await response.json()
+      console.log('Response data:', data)
 
       if (data.url) {
         window.location.href = data.url

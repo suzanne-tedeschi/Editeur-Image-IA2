@@ -10,6 +10,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'priceId requis' }, { status: 400 })
     }
 
+    console.log('Authorization header:', req.headers.get('authorization'))
+
     // Récupérer l'utilisateur connecté
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +26,9 @@ export async function POST(req: NextRequest) {
     )
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    console.log('User:', user)
+    console.log('Auth error:', authError)
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
